@@ -1,8 +1,9 @@
 const express = require('express')
 var cors = require('cors')
-const sql = require('mysql')
+// const sql = require('mysql')
 const app = express()
 const bodyPanser = require('body-parser')
+var middle = require('./Middleware/jumlah.js')
 
 
 app.use(express.json())
@@ -55,7 +56,7 @@ app.get('/', function(req, res){
 
 })
 
-app.get('/Pacar', function(req, res){
+app.get('/Pacar',middle, function(req, res){
 
     C.query('SELECT * FROM data_sayang', (err, result, fields)=>{
 
@@ -70,7 +71,7 @@ app.get('/Pacar', function(req, res){
     })
 })
 
-app.post('/Pacar', function(req, res){
+app.post('/Pacar',middle, function(req, res){
     
     var Arsir_Panggilan = req.body.Nama_Sayang
     var Q = "INSERT INTO data_sayang (Nama_Sayang) values ('"+ Arsir_Panggilan +"')"
@@ -88,10 +89,57 @@ app.post('/Pacar', function(req, res){
 app.delete('/Pacar/:ID_Sayang',(req,res)=>{
     C.query("DELETE from data_sayang WHERE ID_Sayang = '"+req.params.ID_Sayang+"'",(err,rows,fields)=>{
         if(!err){
-            // res.end(rows)
         }
         else
         console.log(err);
+    })
+})
+
+app.post('/User',(req,res,next)=>{
+    C.query('SELECT COUNT(*) as jumlah_data FROM user',(err,result)=>{
+        var jumlah = Object.values(result)
+        if(jumlah[0].jumlah_data > 0){
+            middle(req,res,next)
+        }
+        else{
+            next()
+        }
+    })
+},
+(req,res)=>{
+    var dataUsername = req.body.username
+    var dataPassword = req.body.password
+
+    C.query("INSERT into user(Username,Pass) VALUES (?,?)",[dataUsername,dataPassword],function(err){
+        if(err){
+            throw err
+            
+        }else{
+            C.query("SELECT ID_User,Username FROM user ORDER BY ID_User DESC LIMIT 1",(err,rows,field)=>{
+                res.send(rows)
+            })
+        }
+})
+
+})
+app.get('/User', middle,(req,res)=>{
+    C.query("SELECT ID_User,Username from user",(err,rows,field)=>{
+        if(!err){
+            res.send(rows)
+        }
+        else{
+            console.log(err);
+        }
+    })
+})
+
+app.delete('/User/:ID_User',middle,(req,res)=>{
+    C.query("DELETE from user WHERE ID_User = '"+req.params.ID_User+"'",(err,rows,field)=>{
+        if(!err){
+        res.send(rows)
+    }
+    else
+    console.log(err);
     })
 })
 
